@@ -1,46 +1,20 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
-const winston = require('winston');
+const { Client, LocalAuth } = require("whatsapp-web.js");
 
-const logger = winston.createLogger({
-  transports: [new winston.transports.Console()]
+const client = new Client({
+  authStrategy: new LocalAuth(),
+  puppeteer: {
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-accelerated-2d-canvas",
+      "--no-first-run",
+      "--no-zygote",
+      "--single-process",
+      "--disable-gpu"
+    ]
+  }
 });
 
-function createWhatsAppClient(onMessage) {
-  const client = new Client({
-    authStrategy: new LocalAuth(),
-    puppeteer: { headless: true }
-  });
-
-  client.on('qr', qr => {
-    qrcode.generate(qr, { small: true });
-    logger.info('Scan QR code with WhatsApp to connect.');
-  });
-
-  client.on('ready', () => {
-    logger.info('WhatsApp bot is ready!');
-  });
-
-  client.on('message', async msg => {
-    try {
-      await onMessage(msg);
-    } catch (err) {
-      logger.error('Error handling message:', err);
-    }
-  });
-
-  client.on('disconnected', reason => {
-    logger.warn('WhatsApp disconnected:', reason);
-    logger.info('Attempting to reconnect...');
-    client.initialize();
-  });
-
-  client.on('auth_failure', msg => {
-    logger.error('Auth failure:', msg);
-  });
-
-  client.initialize();
-  return client;
-}
-
-module.exports = { createWhatsAppClient };
+client.initialize();
